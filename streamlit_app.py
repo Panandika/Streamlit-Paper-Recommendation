@@ -60,6 +60,7 @@ data = load_data()
 
 # Embedding selection
 embedding_options = {
+    'Judul': 'embeddings_title', 
     'Abstrak': 'embeddings_abstract_no_prepro',
     'Pendahuluan': 'embeddings_intro_no_prepro',
     'Kombinasi Teks': 'embeddings_combined_no_prepro'
@@ -68,9 +69,10 @@ embedding_options = {
 selected_embedding = st.radio(
     "Pilih Jenis Embedding yang Akan Digunakan:",
     options=list(embedding_options.keys()),
-    index=2,  # Default ke Kombinasi Teks
+    index=3,  # Default ke Kombinasi Teks
     horizontal=True
 )
+
 
 # User input
 input_text = st.text_area(
