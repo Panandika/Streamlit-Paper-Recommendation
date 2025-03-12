@@ -1,6 +1,6 @@
 streamlit==1.26.0
 sentence-transformers==2.2.2
-torch==2.2.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+torch @ https://download.pytorch.org/whl/cpu/torch-2.3.0%2Bcpu-cp312-cp312-linux_x86_64.whl
 pandas==2.2.1
 numpy==1.26.4
 setuptools==69.2.0  # Required for distutils
