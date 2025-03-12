@@ -54,6 +54,8 @@ st.sidebar.header("Tentang Aplikasi")
 st.sidebar.write(
     "Aplikasi ini merekomendasikan jurnal ilmiah berdasarkan input pengguna menggunakan model BERT dan cosine similarity."
 )
+# Tambahkan link Google Form di sidebar
+st.sidebar.markdown("[Berikan Masukan](https://forms.gle/7kCtB3nvRbzhetL2A)")
 
 # Load model and data
 model = load_model()
