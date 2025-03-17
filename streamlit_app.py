@@ -4,6 +4,24 @@ import numpy as np
 import torch
 from sentence_transformers import SentenceTransformer, util
 import pickle
+from streamlit_modal import Modal
+import ast
+
+# Mapping kategori
+CATEGORY_MAPPING = {
+    'cs.AI': 'Artificial Intelligence',
+    'cs.CC': 'Computational Complexity',
+    'cs.DB': 'Databases',
+    'cs.GT': 'Game Theory',
+    'cs.IR': 'Information Retrieval',
+    'cs.PL': 'Programming Languages',
+    'cs.SE': 'Software Engineering',
+    'cs.OH': 'Other Computer Science Topics',
+    'cs.RO': 'Robotics',
+    'cs.CV': 'Computer Vision',
+    'cs.CL': 'Computation and Language',
+    'cs.LG': 'Machine Learning',
+}
 
 # Load pre-trained model
 @st.cache_resource
@@ -13,7 +31,7 @@ def load_model():
 # Load dataset
 @st.cache_resource
 def load_data():
-    with open('data_w_embeddings.pkl', 'rb') as file:
+    with open('data_w_embeddings_v2.pkl', 'rb') as file:
         data = pickle.load(file)
     return data
 
@@ -36,23 +54,34 @@ def get_recommendations(input_text, model, data, embedding_column, top_k=5):
     recommendations = []
     for idx in top_results.indices[0]:
         idx = idx.item()  # Convert tensor to integer
+        
+        # Pastikan kategorinya berupa list (bukan string)
+        raw_categories = data['categories'][idx]
+        if isinstance(raw_categories, str):
+            raw_categories = ast.literal_eval(raw_categories)
+
+        # Mapping kategori
+        category_names = [CATEGORY_MAPPING.get(cat, cat) for cat in raw_categories]
+        category_display = ' / '.join(category_names)
+
         recommendations.append({
-            'title': data['title'][idx],
-            'abstract': data['summary_no_prepro'][idx],
-            'category': data['categories'][idx]
+           'title': data['title'][idx],
+            'abstract': data['summary'][idx],
+            'category': category_display,
+            'pdf_url': data['pdf_url'][idx]
         })
 
     return recommendations
 
 # Streamlit App
-st.set_page_config(page_title="Sistem Rekomendasi Jurnal", layout="centered")
-st.title("Sistem Rekomendasi Jurnal Ilmiah")
+st.set_page_config(page_title="Journal Recommendation System", layout="centered")
+st.title("Scientific Journal Recommendation System")
 
-st.sidebar.header("Tentang Aplikasi")
+st.sidebar.header("About")
 st.sidebar.write(
-    "Aplikasi ini merekomendasikan jurnal ilmiah berdasarkan input pengguna menggunakan model BERT dan cosine similarity."
+    "This application recommends scientific journals based on user input using the BERT model and cosine similarity."
 )
-st.sidebar.markdown("[Berikan Masukan](https://forms.gle/7kCtB3nvRbzhetL2A)")
+st.sidebar.markdown("[Give Feedback](https://forms.gle/7kCtB3nvRbzhetL2A)")
 
 # Load model and data
 model = load_model()
@@ -76,16 +105,16 @@ selected_embedding = st.radio(
 
 # User input
 input_text = st.text_area(
-    "Masukkan topik atau kata kunci yang Anda minati:",
-    placeholder="Contoh: deep learning for natural language processing"
+    "Enter the topics or keywords you are interested in:",
+    placeholder="Example: deep learning for natural language processing"
 )
 
 # Recommendations
-if st.button("Cari Jurnal"):
+if st.button("Search Journal"):
     if not input_text.strip():
-        st.error("Harap masukkan topik atau kata kunci.")
+        st.error("Please enter a topic or keyword.")
     else:
-        with st.spinner("Mencari jurnal..."):
+        with st.spinner("Searching Journal..."):
             recommendations = get_recommendations(
                 input_text, 
                 model, 
@@ -93,11 +122,20 @@ if st.button("Cari Jurnal"):
                 embedding_column=embedding_options[selected_embedding]
             )
 
-        st.subheader("Rekomendasi Jurnal:")
+        st.session_state.show_feedback = True  
+
+        st.subheader("Journal Recommendations:")
         for rec in recommendations:
-            st.markdown(f"### {rec['title']}")
-            st.markdown(f"**Kategori**: {rec['category']}")
-            st.markdown(f"**Abstrak**: {rec['abstract']}")
+            st.markdown(f"### [{rec['title']}]({rec['pdf_url']})")
+            st.markdown(f"**Category**: {rec['category']}")
+            st.markdown(f"**Abstract**: {rec['abstract']}")
             st.write("---")
 
-st.sidebar.write("Dibuat dengan Streamlit dan SentenceTransformer.")
+
+feedback_modal = Modal(key="feedback_modal", title="Give Feedback 🗣️")
+
+if st.session_state.get('show_feedback'):
+    with feedback_modal.container():
+        st.markdown("Help us improve this recommendation system!")
+        st.markdown("[Click here to fill out the feedback form](https://forms.gle/7kCtB3nvRbzhetL2A)")
+        st.session_state.show_feedback = False
