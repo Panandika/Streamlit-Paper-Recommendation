@@ -113,7 +113,7 @@ embedding_options = {
 }
 
 selected_embedding_types = st.multiselect(
-    "Pilih Jenis Embedding yang Akan Digunakan:",
+    "Choose Similarity Options:",
     options=list(embedding_options.keys()),
     default=['Judul', 'Abstrak', 'Pendahuluan'],  # Default kombinasi lengkap
     key="embedding_selector"
