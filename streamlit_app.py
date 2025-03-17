@@ -107,7 +107,7 @@ selected_embedding = st.radio(
 input_text = st.text_area(
     "Enter the topics or keywords you are interested in:",
     placeholder="Example: deep learning for natural language processing"
-    key="search_input
+    key="search_input"
 )
 
 if 'search_results' not in st.session_state:
