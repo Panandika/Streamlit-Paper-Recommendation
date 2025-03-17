@@ -107,7 +107,13 @@ selected_embedding = st.radio(
 input_text = st.text_area(
     "Enter the topics or keywords you are interested in:",
     placeholder="Example: deep learning for natural language processing"
+    key="search_input
 )
+
+if 'search_results' not in st.session_state:
+    st.session_state.search_results = None
+if 'show_feedback' not in st.session_state:
+    st.session_state.show_feedback = False
 
 # Recommendations
 if st.button("Search Journal"):
@@ -125,19 +131,21 @@ if st.button("Search Journal"):
         st.session_state.search_results = recommendations
         st.session_state.show_feedback = True  
 
-        if 'search_results' in st.session_state and st.session_state.search_results:
-            st.subheader("Journal Recommendations:")
-            for rec in recommendations:
-                st.markdown(f"### [{rec['title']}]({rec['pdf_url']})")
-                st.markdown(f"**Category**: {rec['category']}")
-                st.markdown(f"**Abstract**: {rec['abstract']}")
-                st.write("---")
-
+# Persistent results display
+if st.session_state.search_results:
+    st.subheader("Journal Recommendations:")
+    for rec in st.session_state.search_results:
+        st.markdown(f"### [{rec['title']}]({rec['pdf_url']})")
+        st.markdown(f"**Category**: {rec['category']}")
+        st.markdown(f"**Abstract**: {rec['abstract']}")
+        st.write("---")
 
 feedback_modal = Modal(key="feedback_modal", title="Give Feedback 🗣️")
 
-if st.session_state.get('show_feedback'):
+if st.session_state.show_feedback:
     with feedback_modal.container():
         st.markdown("Help us improve this recommendation system!")
         st.markdown("[Click here to fill out the feedback form](https://forms.gle/7kCtB3nvRbzhetL2A)")
+    
+    # Reset feedback trigger without clearing results
     st.session_state.show_feedback = False
