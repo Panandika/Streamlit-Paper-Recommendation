@@ -36,41 +36,59 @@ def load_data():
     return data
 
 # Calculate cosine similarity
-def get_recommendations(input_text, model, data, embedding_column, top_k=5):
-    # Encode input text to get its embedding
-    input_embedding = model.encode(input_text, convert_to_tensor=True)
+# Fungsi rekomendasi yang dimodifikasi
+def get_recommendations(input_text, model, data, embedding_columns, top_k=5):
+    # Encode input text sekali saja
+    input_embedding_single = model.encode(input_text, convert_to_tensor=True)
     
-    # Ensure both tensors are on the same device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    input_embedding = input_embedding.to(device)
-    embeddings = torch.tensor(data[embedding_column], device=device)
-
-    # Calculate cosine similarity
-    cosine_scores = util.cos_sim(input_embedding, embeddings)
-
-    # Get top_k results
+    # Hitung jumlah embedding yang dipilih
+    num_selected = len(embedding_columns)
+    
+    # Gabungkan embedding input sesuai jumlah yang dipilih
+    input_embedding = torch.cat([input_embedding_single] * num_selected)
+    
+    # Siapkan embeddings untuk semua paper
+    device = input_embedding.device
+    paper_embeddings = []
+    
+    for idx in range(len(data)):
+        # Kumpulkan semua embedding yang dipilih untuk paper ini
+        combined = []
+        for col in embedding_columns:
+            combined.append(data[col][idx])
+        
+        # Gabungkan menjadi satu array numpy
+        combined_np = np.concatenate(combined)
+        paper_embeddings.append(combined_np)
+    
+    # Konversi ke tensor dan pindahkan ke device yang sama
+    paper_embeddings = torch.tensor(np.array(paper_embeddings), device=device)
+    
+    # Hitung similarity
+    cosine_scores = util.cos_sim(input_embedding.unsqueeze(0), paper_embeddings)
+    
+    # Ambil hasil terbaik
     top_results = torch.topk(cosine_scores, k=top_k)
-
+    
     recommendations = []
     for idx in top_results.indices[0]:
-        idx = idx.item()  # Convert tensor to integer
+        idx = idx.item()
         
-        # Pastikan kategorinya berupa list (bukan string)
+        # Proses kategori sama seperti sebelumnya
         raw_categories = data['categories'][idx]
         if isinstance(raw_categories, str):
             raw_categories = ast.literal_eval(raw_categories)
-
-        # Mapping kategori
+        
         category_names = [CATEGORY_MAPPING.get(cat, cat) for cat in raw_categories]
         category_display = ' / '.join(category_names)
 
         recommendations.append({
-           'title': data['title'][idx],
+            'title': data['title'][idx],
             'abstract': data['summary'][idx],
             'category': category_display,
             'pdf_url': data['pdf_url'][idx]
         })
-
+    
     return recommendations
 
 # Streamlit App
@@ -91,17 +109,15 @@ data = load_data()
 embedding_options = {
     'Judul': 'embeddings_title', 
     'Abstrak': 'embeddings_abstract_no_prepro',
-    'Pendahuluan': 'embeddings_intro_no_prepro',
-    'Kombinasi Teks': 'embeddings_combined_no_prepro'
+    'Pendahuluan': 'embeddings_intro_no_prepro'
 }
 
-selected_embedding = st.radio(
+selected_embedding_types = st.multiselect(
     "Pilih Jenis Embedding yang Akan Digunakan:",
     options=list(embedding_options.keys()),
-    index=3,  # Default ke Kombinasi Teks
-    horizontal=True
+    default=['Judul', 'Abstrak', 'Pendahuluan'],  # Default kombinasi lengkap
+    key="embedding_selector"
 )
-
 
 # User input
 input_text = st.text_area(
@@ -118,18 +134,22 @@ if 'show_feedback' not in st.session_state:
 # Recommendations
 if st.button("Search Journal"):
     if not input_text.strip():
-        st.error("Please enter a topic or keyword.")
+        st.error("Harap masukkan topik atau kata kunci.")
     else:
-        with st.spinner("Searching Journal..."):
+        with st.spinner("Mencari Journal..."):
+            # Dapatkan kolom embedding yang dipilih
+            selected_columns = [embedding_options[t] for t in selected_embedding_types]
+            
             recommendations = get_recommendations(
                 input_text, 
                 model, 
                 data,
-                embedding_column=embedding_options[selected_embedding]
+                embedding_columns=selected_columns  # Kirim list kolom yang dipilih
             )
-
+        
         st.session_state.search_results = recommendations
-        st.session_state.show_feedback = True  
+        st.session_state.show_feedback = True
+
 
 # Persistent results display
 if st.session_state.search_results:
