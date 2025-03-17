@@ -140,4 +140,5 @@ if st.session_state.get('show_feedback'):
     with feedback_modal.container():
         st.markdown("Help us improve this recommendation system!")
         st.markdown("[Click here to fill out the feedback form](https://forms.gle/7kCtB3nvRbzhetL2A)")
-        
+        if st.button("Dismiss"):
+            st.session_state.show_feedback = False
