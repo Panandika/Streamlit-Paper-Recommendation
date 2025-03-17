@@ -106,7 +106,7 @@ selected_embedding = st.radio(
 # User input
 input_text = st.text_area(
     "Enter the topics or keywords you are interested in:",
-    placeholder="Example: deep learning for natural language processing"
+    placeholder="Example: deep learning for natural language processing",
     key="search_input"
 )
 
