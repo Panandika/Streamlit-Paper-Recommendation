@@ -122,14 +122,16 @@ if st.button("Search Journal"):
                 embedding_column=embedding_options[selected_embedding]
             )
 
+        st.session_state.search_results = recommendations
         st.session_state.show_feedback = True  
 
-        st.subheader("Journal Recommendations:")
-        for rec in recommendations:
-            st.markdown(f"### [{rec['title']}]({rec['pdf_url']})")
-            st.markdown(f"**Category**: {rec['category']}")
-            st.markdown(f"**Abstract**: {rec['abstract']}")
-            st.write("---")
+        if 'search_results' in st.session_state and st.session_state.search_results:
+            st.subheader("Journal Recommendations:")
+            for rec in recommendations:
+                st.markdown(f"### [{rec['title']}]({rec['pdf_url']})")
+                st.markdown(f"**Category**: {rec['category']}")
+                st.markdown(f"**Abstract**: {rec['abstract']}")
+                st.write("---")
 
 
 feedback_modal = Modal(key="feedback_modal", title="Give Feedback 🗣️")
@@ -138,4 +140,4 @@ if st.session_state.get('show_feedback'):
     with feedback_modal.container():
         st.markdown("Help us improve this recommendation system!")
         st.markdown("[Click here to fill out the feedback form](https://forms.gle/7kCtB3nvRbzhetL2A)")
-        st.session_state.show_feedback = False
+        
