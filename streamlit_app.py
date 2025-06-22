@@ -95,8 +95,9 @@ def get_recommendations(input_text, model, data, embedding_columns, year_range=N
     top_results = torch.topk(cosine_scores, k=min(top_k, len(filtered_data)))
     
     recommendations = []
-    for idx in top_results.indices[0]:
+    for i, idx in enumerate(top_results.indices[0]):
         idx = idx.item()
+        score = top_results.values[0][i].item()  # Get the similarity score
         
         # Proses kategori sama seperti sebelumnya
         raw_categories = filtered_data['categories'].iloc[idx]
@@ -115,7 +116,8 @@ def get_recommendations(input_text, model, data, embedding_columns, year_range=N
             'abstract': filtered_data['summary_no_prepro'].iloc[idx],
             'category': category_display,
             'pdf_url': filtered_data['pdf_url'].iloc[idx],
-            'year': pub_year
+            'year': pub_year,
+            'score': score  # Add similarity score
         })
     
     return recommendations
@@ -153,15 +155,15 @@ else:
 
 # Embedding selection
 embedding_options = {
-    'Judul': 'embeddings_title', 
-    'Abstrak': 'embeddings_abstract_no_prepro',
-    'Pendahuluan': 'embeddings_intro_no_prepro'
+    'Title': 'embeddings_title', 
+    'Abstract': 'embeddings_abstract_no_prepro',
+    'Introduction': 'embeddings_intro_no_prepro'
 }
 
 selected_embedding_types = st.multiselect(
     "Choose Similarity Options:",
     options=list(embedding_options.keys()),
-    default=['Judul', 'Abstrak', 'Pendahuluan'],  # Default kombinasi lengkap
+    default=['Title', 'Abstract', 'Introduction'],  # Default kombinasi lengkap
     key="embedding_selector"
 )
 
@@ -180,9 +182,9 @@ if 'show_feedback' not in st.session_state:
 # Recommendations
 if st.button("Search Journal"):
     if not input_text.strip():
-        st.error("Harap masukkan topik atau kata kunci.")
+        st.error("Please enter a topic or keywords.")
     else:
-        with st.spinner("Mencari Journal..."):
+        with st.spinner("Searching For Journal..."):
             # Dapatkan kolom embedding yang dipilih
             selected_columns = [embedding_options[t] for t in selected_embedding_types]
             
@@ -207,6 +209,7 @@ if st.session_state.search_results:
     for rec in st.session_state.search_results:
         year_display = f" ({rec['year']})" if rec['year'] else ""
         st.markdown(f"### [{rec['title']}{year_display}]({rec['pdf_url']})")
+        st.markdown(f"**Similarity Score:** {rec['score']:.4f}")  # Show similarity score
         st.markdown(f"**Category**: {rec['category']}")
         st.markdown(f"**Abstract**: {rec['abstract']}")
         st.write("---")
